@@ -2,7 +2,8 @@ import torch
 import argparse
 
 
-def parameter_setup():
+def parameter_setup(arg_list):
+    # TODO: finsih modifying default value with arg_list
     # Default Setting
     # fine_tune vs. pre-trained
     fine_tune = True
