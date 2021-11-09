@@ -62,5 +62,21 @@ def parameter_setup():
 
 
 def train_arg_parser():
-    # TODO: finish configuring arg parser
-    pass
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--pretrain", help = "Turn on training model from scratch", action = "store_true")
+    parser.add_argument("--pre_G", help = "setting location for pre-trained Generator")
+    parser.add_argument("--pre_D", help = "setting location for pre-trained Discriminator")
+    parser.add_argument("--data_root", help = "setting location for training data")
+    parser.add_argument("--ewc_data_root", help = "setting location for ewc evaluation data")
+    parser.add_argument("--batch_size", type = int, help = "setting batch_size")
+    parser.add_argument("--image_size", type = int, help = "setting image_size")
+    parser.add_argument("--workers", type = int, help = "setting workers for data load")
+    parser.add_argument("--num_epochs", type = int, help = "setting number of epochs")
+    parser.add_argument("--D_lr", type = float, help = "Setting learning rate for discriminator")
+    parser.add_argument("--D_beta1", type = float, help = "Setting learning rate for discriminator Adam optimizer beta 1")
+    parser.add_argument("--D_beta2", type = float, help = "Setting learning rate for discriminator Adam optimizer beta 2")
+    parser.add_argument("--G_lr", type = float, help = "Setting learning rate for generator")
+    parser.add_argument("--G_beta1", type = float, help = "Setting learning rate for generator Adam optimizer beta 1")
+    parser.add_argument("--G_beta2", type = float, help = "Setting learning rate for generator Adam optimizer beta 2")
+    parser.add_argument("--ewc_lambda", type = float, help = "Setting ewc penalty lambda coefficient ")
+    return parser
