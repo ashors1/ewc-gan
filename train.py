@@ -282,8 +282,10 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
 
 if __name__ == '__main__':
-
-    train_dict, ewc_dict = parameter_setup()
+    parser = train_arg_parser
+    args = parser.parse_args()
+    
+    train_dict, ewc_dict = parameter_setup(args._get_kwargs())
 
     ############################################
     ###### Model Initialization
