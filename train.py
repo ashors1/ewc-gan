@@ -22,7 +22,7 @@ import pathlib as plib
 import time
 from datetime import datetime
 import argparse
-from parameter_setup import parameter_setup, train_arg_parser
+from parameter_setup import parameter_setup
 
 
 # custom weights initialization called on netG and netD
@@ -252,7 +252,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         ############################
         #
         f_handle.write(
-            f"Training Finished, total run time {round((start_time - time.time())/60)}"
+            f"Training Finished, total run time {round((start_time - time.time())/60)} minutes."
         )
 
         for k, v in log_img_dict.items():
@@ -282,15 +282,12 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
 
 if __name__ == '__main__':
-    parser = train_arg_parser
-    args = parser.parse_args()
-    
-    train_dict, ewc_dict = parameter_setup(args._get_kwargs())
 
+    train_dict, ewc_dict = parameter_setup()
     ############################################
     ###### Model Initialization
     ############################################
-    if not train_dict['fine_tune']:
+    if train_dict['pretrain']:
         # pre-training
         netG = Generator(train_dict['ngpu']).to(train_dict['device'])
 
