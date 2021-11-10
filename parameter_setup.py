@@ -12,6 +12,12 @@ def parameter_setup():
                         help="Turn on training model from scratch",
                         action="store_true",
                         default=False)
+    parser.add_argument("-s",
+                        "--save",
+                        help="Turn on saving the generator and discriminator",
+                        action="store_true",
+                        default=False)
+
     parser.add_argument("--pre_G",
                         help="setting location for pre-trained Generator",
                         default="./netG_10_epoch_state_dict")
@@ -43,6 +49,12 @@ def parameter_setup():
                         type=float,
                         help="Setting learning rate for discriminator",
                         default=0.0002)
+
+    parser.add_argument("--D_update_rate",
+                        type=int,
+                        help="setting the discriminator update rate",
+                        default=1)
+
     parser.add_argument(
         "--D_beta1",
         type=float,

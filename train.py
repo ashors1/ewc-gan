@@ -148,7 +148,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
                 ### i've been changing niters to adjust how many generator training iterations we do for each discriminator
                 ### iteration
-                if iters % 1 == 0:
+                if iters % train_dict['D_update_rate'] == 0:
                     # Format batch
                     real_cpu = data[0].to(device)
                     b_size = real_cpu.size(0)
@@ -251,6 +251,14 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         # Finish Logging
         ############################
         #
+        if train_dict['save']:
+            model_dir = plib.Path.cwd() / "saved_model"
+            model_dir.mkdir(exist_ok=True)
+            torch.save(netD.state_dict(),
+                       model_dir / f"Run_{current_version}_netD.pt")
+            torch.save(netG.state_dict(),
+                       model_dir / f"Run_{current_version}_netG.pt")
+
         f_handle.write(
             f"Training Finished, total run time {round((start_time - time.time())/60)} minutes."
         )
