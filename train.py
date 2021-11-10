@@ -25,10 +25,6 @@ import argparse
 from parameter_setup import parameter_setup
 
 
-manualSeed = 999
-random.seed(manualSeed)
-torch.manual_seed(manualSeed)
-
 # custom weights initialization called on netG and netD
 # Specified by DCGAN tutorial at https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 def weights_init(m):
@@ -40,9 +36,9 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-#def ewc_loss(model):
+def ewc_loss(model):
     #TODO: Implement
-    #return 0
+    return 0
 
 
 def train(netG, netD, dataloader, train_dict, ewc_dict):
@@ -72,6 +68,13 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     print('done with initialization')
 
     lam = ewc_dict["ewc_lambda"]
+
+    # Set random seed for reproducibility
+    manualSeed = 999
+    #manualSeed = random.randint(1, 10000) # use if you want new results
+    print("Random Seed: ", manualSeed)
+    random.seed(manualSeed)
+    torch.manual_seed(manualSeed)
 
     ############################################
     ######   Logging Setup
@@ -203,7 +206,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 # Calculate G's loss based on this output and add EWC regularization term!
                 #print(ewc.penalty(netG))
                 ## ewc penalty for generator
-                errG = criterion(output, label)  + lam * ewc.penalty(netG)
+                errG = criterion(output, label)  #+ lam * ewc.penalty(netG)
                 # Calculate gradients for G
                 errG.backward()
                 D_G_z2 = output.mean().item()
