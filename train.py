@@ -82,9 +82,18 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     log_dir = plib.Path.cwd() / "log"
     log_dir.mkdir(exist_ok=True)
 
+    summary_dir = log_dir / "training_summary"
+    summary_dir.mkdir(exist_ok=True)
+
+    intermediate_img_dir = log_dir / "intermediate_img"
+    intermediate_img_dir.mkdir(exist_ok=True)
+
+    final_img_dir = log_dir / "final_img"
+    final_img_dir.mkdir(exist_ok=True)
+
     existing_log_files_versions = [
         int(f.name.replace(".log", "").replace("Run ", ""))
-        for f in log_dir.glob('*.log') if f.is_file()
+        for f in summary_dir.glob('*.log') if f.is_file()
     ]
 
     if len(existing_log_files_versions) == 0:
@@ -92,7 +101,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     else:
         current_version = max(existing_log_files_versions) + 1
 
-    log_file_path = log_dir / f"Run {current_version}.log"
+    log_file_path = summary_dir / f"Run {current_version}.log"
 
     ############################################
     ######   Loss Function and Optimizer
@@ -231,12 +240,12 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 if (iters % 500 == 0) or ((epoch == num_epochs - 1) and
                                           (i == len(dataloader) - 1)):
                     with torch.no_grad():
-                        fake = netG(noise).detach().cpu()
+                        fake = netG(fixed_noise).detach().cpu()
                     img_list.append(
                         vutils.make_grid(fake, padding=2, normalize=True))
 
                 ## I addded this to inspect the generated images every 10 iterations
-                if iters % 10 == 0:
+                if iters % train_dict['img_freq'] == 0:
                     with torch.no_grad():
                         fake = netG(noise).detach().cpu()
 
@@ -245,7 +254,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                         (1, 2, 0))
 
                     log_img_dict[
-                        log_dir /
+                        intermediate_img_dir /
                         f"Run {current_version} Fixed Noise Output at Iter {iters}.png"] = img_grid
 
                     plt.imshow(img_grid)
@@ -280,7 +289,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         plt.axis("off")
         plt.title("Fake Images")
         plt.imshow(np.transpose(img_list[-1], (1, 2, 0)))
-        plt.savefig(log_dir /
+        plt.savefig(final_img_dir /
                     f"Run {current_version} Fixed Noise Output at Iter -1.png")
         #plt.show()
 
@@ -293,7 +302,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         plt.xlabel("iterations")
         plt.ylabel("Loss")
         plt.legend()
-        plt.savefig(log_dir / f"Run {current_version} loss.png")
+        plt.savefig(final_img_dir / f"Run {current_version} loss.png")
 
 
 if __name__ == '__main__':
