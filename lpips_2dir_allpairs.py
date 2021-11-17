@@ -12,8 +12,7 @@ to compute all pairwise LPIPS distances between images in two directories
 Example Usage
 -------------
 
-> python lpips_2dir_allpairs.py -d0 data/100-shot-obama/ -d1 data/100-shot-grumpy_cat -o obama_grumpycat_pairwise.txt
-
+> python lpips_2dir_allpairs.py -d0 data/CelebA_sample_resized/ -d1 data/few_shot/100-shot-obama/0/ -o celebA_obama_pairwise_dist.txt
 
 
 '''

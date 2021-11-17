@@ -215,17 +215,17 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 # Calculate G's loss based on this output and add EWC regularization term!
                 #print(ewc.penalty(netG))
                 ## ewc penalty for generator
-                errG = criterion(output, label)  #+ lam * ewc.penalty(netG)
-                # Calculate gradients for G
+                ewc_penalty = ewc.penalty(netG)
+                errG = criterion(output, label)  + lam * ewc_penalty                # Calculate gradients for G
                 errG.backward()
                 D_G_z2 = output.mean().item()
                 # Update G
                 optimizerG.step()
 
                 # Output training stats
-                msg = '[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f' % (
+                msg = '[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f\tEWC: %.4g' % (
                     epoch, num_epochs, i, len(dataloader), errD.item(),
-                    errG.item(), D_x, D_G_z1, D_G_z2)
+                    errG.item(), D_x, D_G_z1, D_G_z2, ewc_penalty)
                 if i % 50 == 0:
                     print(msg)
 
@@ -287,10 +287,11 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         plt.subplot(1, 2, 2)
         plt.figure(figsize=(8, 8))
         plt.axis("off")
-        plt.title("Fake Images")
+        # plt.title("Fake Images")
         plt.imshow(np.transpose(img_list[-1], (1, 2, 0)))
         plt.savefig(final_img_dir /
-                    f"Run {current_version} Fixed Noise Output at Iter -1.png")
+                    f"Run {current_version} Fixed Noise Output at Iter -1.png",
+                    bbox_inches='tight', transparent=True, pad_inches=.1)
         #plt.show()
 
         # plot loss
