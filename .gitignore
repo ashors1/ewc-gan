@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Stupid Mac things
+.DS_Store
+
+# data, model, log, sampled_image, and distance log folder
+data/
+log/
+saved_model/
+distances
+sampled_images/

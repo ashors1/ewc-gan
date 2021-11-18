@@ -35,6 +35,13 @@ def parameter_setup():
                         type=int,
                         help="setting batch_size",
                         default=4)
+
+    parser.add_argument(
+        "--img_freq",
+        type=int,
+        help="setting frequency (every n iteration) of saving images",
+        default=50)
+
     parser.add_argument("--image_size",
                         type=int,
                         help="setting image_size",
