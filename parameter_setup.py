@@ -20,13 +20,16 @@ def parameter_setup():
 
     parser.add_argument("--pre_G",
                         help="setting location for pre-trained Generator",
-                        default="./netG_10_epoch_state_dict")
+                        #default="./netG_10_epoch_state_dict")
+                        default='../../celeba_pretrained_generator')
     parser.add_argument("--pre_D",
                         help="setting location for pre-trained Discriminator",
-                        default="./netD_10_epoch_state_dict")
+                        #default="./netD_10_epoch_state_dict")
+                        default='../../celeba_pretrained_discriminator')
     parser.add_argument("--data_root",
                         help="setting location for training data",
-                        default="./data/AF_Mini")
+                        #default="./data/AF_Mini")
+                        default="../../few_shot")
 
     parser.add_argument("--batch_size",
                         type=int,
@@ -43,12 +46,13 @@ def parameter_setup():
     parser.add_argument("--num_epochs",
                         type=int,
                         help="setting number of epochs",
-                        default=5)
+                        default=100)
 
     parser.add_argument("--D_lr",
                         type=float,
                         help="Setting learning rate for discriminator",
-                        default=0.0002)
+                        #default=0.0002)
+                        default=0.0006)
 
     parser.add_argument("--D_update_rate",
                         type=int,
@@ -88,12 +92,13 @@ def parameter_setup():
     # EWC Parameters
     parser.add_argument("--ewc_data_root",
                         help="setting location for ewc evaluation data",
-                        default="./data/AF_Mini")
+                        #default="./data/AF_Mini")
+                        default="../../few_shot")
 
     parser.add_argument("--ewc_lambda",
                         type=float,
                         help="Setting ewc penalty lambda coefficient ",
-                        default=0.1)
+                        default=10000)
 
     args = parser.parse_args()
     train_dict = dict()

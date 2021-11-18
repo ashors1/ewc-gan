@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.autograd import Variable
+from torch import autograd
 import torch.utils.data
 
 import argparse
@@ -24,26 +25,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import HTML
+#from torchsummary import summary
 
 class EWC(object):
 
-    def __init__(self, dataroot, batch_size, generator: nn.Module, discriminator: nn.Module):
-
-        ## if we're just computing fisher info for generator, no need for the actual training data
-        '''image_size = 64
-       
-        ## this is the celebA dataset. I was computing fisher info for the discriminator based
-        ## on both the generated data and the training data but I guess that's not correct
-        self.dataset = dset.ImageFolder(root=dataroot,
-                                   transform=transforms.Compose([
-                                       transforms.Resize(image_size),
-                                       transforms.CenterCrop(image_size),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                   ]))
-        # Create the dataloader
-        self.dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=batch_size,
-                                                 shuffle=True, num_workers=2)'''
+    def __init__(self, dataroot, sample_size, generator: nn.Module, discriminator: nn.Module):
 
         # Decide which device we want to run on
         self.generator = generator
@@ -51,14 +37,11 @@ class EWC(object):
         self.device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
         ## number of examples to use to estimate fisher information
-        self.bs = batch_size
+        self.sample_size = sample_size
 
         self.gen_params = {n: p for n, p in self.generator.named_parameters() if p.requires_grad}
-        #self.disc_params = {n: p for n, p in self.discriminator.named_parameters() if p.requires_grad}
-        ## estimate the fisher info on a batch of data
-        #self.fisher_info_gen, self.fisher_info_disc= self.compute_fisher()
         self.fisher_info_gen = self.compute_fisher()
-   
+
         ## 'star_vars' refers to the pretrained weights.
         ## these should NOT be trainable
         self.gen_star_vars= {}
@@ -75,58 +58,65 @@ class EWC(object):
         ### TODO: pass this in as arg
         nz = 100
 
-        criterion = nn.BCELoss()
+        criterion = nn.BCELoss(reduction = 'none')
 
         ### these dicts will store the fisher info for each weight
         fisher_generator = {}
-        fisher_discriminator = {}
 
-        for n, p in deepcopy(self.gen_params).items():
-            #p.requires_grad = False
-            p.data.zero_()
-            if torch.cuda.is_available():
-                p = p.cuda
-            fisher_generator[n] = Variable(p.data)
+        #self.generator.zero_grad()
 
-        self.generator.eval()
-        self.discriminator.eval()
+        ### ADD BATCHING TO SPEED UP COMPUTATION ###
+        ## currently batch size is hard coded to 32
+        loglikelihoods = []
+        for _ in range(100):
 
-        #for i, data in enumerate(self.dataloader, 0):
-        for _ in range(5):
-
-            ### from paper, it looks like only generator's fisher information is relevant!!
-            ### see end of page 4
-
-            ############################
-            # (2) Update G network: maximize log(D(G(z)))
-            ###########################
-            self.generator.zero_grad()
-            ## with this line commented out, dont the training issues. With it in, I do
-            noise = torch.randn(self.bs, nz, 1, 1, device=self.device)
+            noise = torch.randn(32, nz, 1, 1, device=self.device)
             fake = self.generator(noise)
 
-            label = torch.full((self.bs,), real_label, dtype=torch.float, device=self.device)
+            label = torch.full((32,), real_label, dtype=torch.float, device=self.device)
             label.fill_(real_label)  # fake labels are real for generator cost
             # Since we just updated D, perform another forward pass of all-fake batch through D
-            output = self.discriminator(fake).view(-1)
+
+            ## get the log likelihoods directly
+            output = torch.log(self.discriminator(fake)).view(-1)
             # Calculate G's loss based on this output
-            errG = criterion(output, label)
-            # Calculate gradients for G
-            errG.backward()
+            #output = self.discriminator(fake).view(-1)
+            #errG = criterion(output, label)
+            #print(errG.shape)
 
-            ### store gradients in the fisher info dicts
-            for n, p in self.generator.named_parameters():
-                ### idk why the original implementation divided by bs here...
-                ### loss reduction is mean so we should already be dividing by bs in the loss computation
-                fisher_generator[n].data += p.grad.data ** 2 #/ self.bs
+            #loglikelihoods.append(
+            #    -errG
+            #)
 
-            fisher_generator = {n: p for n, p in fisher_generator.items()}
+            #print(output)
+            loglikelihoods.append(output)
 
-            self.generator.train()
-            self.discriminator.train()
+            if len(loglikelihoods) >= self.sample_size // 32:
+                break
 
-            ## just estimate using one batch of data
-            return fisher_generator#, fisher_discriminator
+        loglikelihoods = torch.cat(loglikelihoods).unbind()
+
+        # Calculate gradients for G
+        #print(summary(self.generator, (100, 1, 1)))
+        loglikelihood_grads = zip(*[autograd.grad(
+            l, self.generator.parameters(),
+            retain_graph=(i < len(loglikelihoods))
+        ) for i, l in enumerate(loglikelihoods, 1)])
+
+        '''for gs in loglikelihood_grads:
+            for i in gs:
+                print(i.shape)
+            print()
+            print('*****************')'''
+
+        loglikelihood_grads = [torch.stack(gs) for gs in loglikelihood_grads]
+        fisher_diagonals = [(g ** 2).mean(0) for g in loglikelihood_grads]
+
+        ## just estimate using one batch of data
+        #return fisher_generator#, fisher_discriminator
+        names = [n for n,p in self.generator.named_parameters()]
+
+        return {n: f.detach() for n, f in zip(names, fisher_diagonals)}
 
     ## compute the regularization term
     def penalty(self, model, gen=True):
@@ -134,11 +124,6 @@ class EWC(object):
         params = model.named_parameters()
         star_vars = self.gen_star_vars
         fisher = self.fisher_info_gen
-
-        '''for n, p in params:
-            print(p[0][0])
-            print(star_vars[n][0][0])
-            break'''
 
         loss = 0
         #print(star_vars['main.7.weight'])

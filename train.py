@@ -40,11 +40,6 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-#def ewc_loss(model):
-    #TODO: Implement
-    #return 0
-
-
 def train(netG, netD, dataloader, train_dict, ewc_dict):
 
     ############################################
@@ -68,7 +63,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     # EWC Setup
     ## dataroot is path to celeba dataset
     ewc_data_root = ewc_dict['ewc_data_root']
-    ewc = EWC(ewc_data_root, 1024, netG, netD)
+    ewc = EWC(ewc_data_root, 128, netG, netD)
     print('done with initialization')
 
     lam = ewc_dict["ewc_lambda"]
@@ -124,6 +119,9 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     ## except we add the EWC penalty to the loss function
     print("Starting Training Loop...")
     # For each epoch
+
+    netD.train()
+    netG.train()
 
     with log_file_path.open('w', encoding="utf-8") as f_handle:
         ############################
@@ -201,9 +199,8 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 fake = netG(noise)
                 output = netD(fake).view(-1)
                 # Calculate G's loss based on this output and add EWC regularization term!
-                #print(ewc.penalty(netG))
                 ## ewc penalty for generator
-                errG = criterion(output, label)  + lam * ewc.penalty(netG)
+                errG = criterion(output, label) + lam * ewc.penalty(netG)
                 # Calculate gradients for G
                 errG.backward()
                 D_G_z2 = output.mean().item()
@@ -246,8 +243,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                         f"Run {current_version} Fixed Noise Output at Iter {iters}.png"] = img_grid
 
                     plt.imshow(img_grid)
-                    #plt.imshow(np.transpose(vutils.make_grid(torch.cat((data[0], fake)), padding=2, normalize=True), (1,2,0)))
-                    #plt.show()
+
 
                 iters += 1
 
