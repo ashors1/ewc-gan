@@ -27,6 +27,11 @@ from parameter_setup import parameter_setup
 
 # custom weights initialization called on netG and netD
 # Specified by DCGAN tutorial at https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+
+# Adds 2 GAN Hack methods for stabilizing training/handicapping the discriminator using
+# one-sided label smoothing and instance noise:
+# https://www.inference.vc/instance-noise-a-trick-for-stabilising-gan-training/
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -59,7 +64,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     # EWC Setup
     ## dataroot is path to celeba dataset
     ewc_data_root = ewc_dict['ewc_data_root']
-    ewc = EWC(ewc_data_root, 128, netG, netD)
+    # ewc = EWC(ewc_data_root, 128, netG, netD)
     print('done with initialization')
 
     lam = ewc_dict["ewc_lambda"]
@@ -170,8 +175,21 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                                        real_label,
                                        dtype=torch.float,
                                        device=device)
+
+                    #one-sided label smoothing
+                    if train_dict['label_smoothing_p'] != 0:
+                        flip_idxs = torch.randperm(b_size)[:int(b_size*train_dict['label_smoothing_p'])]
+                        label[flip_idxs] = fake_label
+
+                    # #instance noise
+                    if train_dict['instance_noise_sigma'] != 0:
+                        sigma_anneal = (num_epochs - epoch)/num_epochs*train_dict['instance_noise_sigma']
+                        instance_noise = sigma_anneal *torch.randn(size = real_cpu.size())
+                    else:
+                        instance_noise = 0
+
                     # Forward pass real batch through D
-                    output = netD(real_cpu).view(-1)
+                    output = netD(real_cpu + instance_noise).view(-1)
                     # Calculate loss on all-real batch
                     ## comment in the ewc penalty line if you want to incorporate ewc
                     errD_real = criterion(
@@ -212,10 +230,9 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 output = netD(fake).view(-1)
                 # Calculate G's loss based on this output and add EWC regularization term!
                 ## ewc penalty for generator
-               
                 ewc_penalty = ewc.penalty(netG)
                 errG = criterion(output, label) + lam * ewc_penalty
-                
+
                 # Calculate gradients for G
                 errG.backward()
                 D_G_z2 = output.mean().item()

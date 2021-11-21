@@ -106,6 +106,17 @@ def parameter_setup():
                         type=float,
                         help="Setting ewc penalty lambda coefficient ",
                         default=10000)
+    #GAN Hack parameters
+    parser.add_argument("--instance_noise_sigma",
+                        type=float,
+                        help="Setting instant noise std dev inital value (annealed to 0)",
+                        default=.1)
+
+    parser.add_argument("--label_smoothing_p",
+                        type=float,
+                        help="Setting one sided label smoothing probability of wrong label",
+                        default=.2)
+
 
     args = parser.parse_args()
     train_dict = dict()
