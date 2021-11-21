@@ -64,7 +64,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     # EWC Setup
     ## dataroot is path to celeba dataset
     ewc_data_root = ewc_dict['ewc_data_root']
-    # ewc = EWC(ewc_data_root, 128, netG, netD)
+    ewc = EWC(ewc_data_root, 128, netG, netD)
     print('done with initialization')
 
     lam = ewc_dict["ewc_lambda"]
