@@ -39,7 +39,7 @@ if __name__ == '__main__':
 	dataloader = torch.utils.data.DataLoader(
 	    pretrained_dataset,
 	    batch_size=opt.N,
-	    shuffle=True,
+	    shuffle=False,
 	    num_workers=1)
 
 	data_0 = next(iter(dataloader))

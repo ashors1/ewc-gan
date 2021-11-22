@@ -203,9 +203,14 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                     noise = torch.randn(b_size, nz, 1, 1, device=device)
                     # Generate fake image batch with G
                     fake = netG(noise)
+                    if train_dict['instance_noise_sigma'] != 0:
+                        sigma_anneal = (num_epochs - epoch)/num_epochs*train_dict['instance_noise_sigma']
+                        instance_noise = sigma_anneal *torch.randn(size = real_cpu.size())
+                    else:
+                        instance_noise = 0
                     label.fill_(fake_label)
                     # Classify all fake batch with D
-                    output = netD(fake.detach()).view(-1)
+                    output = netD(fake.detach()+instance_noise).view(-1)
                     # Calculate D's loss on the all-fake batch
                     ## commend in ewc penalty here too
                     errD_fake = criterion(
