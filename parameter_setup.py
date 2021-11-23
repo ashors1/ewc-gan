@@ -18,18 +18,21 @@ def parameter_setup():
                         action="store_true",
                         default=False)
 
-    parser.add_argument("--pre_G",
-                        help="setting location for pre-trained Generator",
-                        #default="./netG_10_epoch_state_dict")
-                        default='../../celeba_pretrained_generator')
-    parser.add_argument("--pre_D",
-                        help="setting location for pre-trained Discriminator",
-                        #default="./netD_10_epoch_state_dict")
-                        default='../../celeba_pretrained_discriminator')
-    parser.add_argument("--data_root",
-                        help="setting location for training data",
-                        #default="./data/AF_Mini")
-                        default="../../few_shot")
+    parser.add_argument(
+        "--pre_G",
+        help="setting location for pre-trained Generator",
+        #default="./netG_10_epoch_state_dict")
+        default='../../celeba_pretrained_generator')
+    parser.add_argument(
+        "--pre_D",
+        help="setting location for pre-trained Discriminator",
+        #default="./netD_10_epoch_state_dict")
+        default='../../celeba_pretrained_discriminator')
+    parser.add_argument(
+        "--data_root",
+        help="setting location for training data",
+        #default="./data/AF_Mini")
+        default="../../few_shot")
 
     parser.add_argument("--batch_size",
                         type=int,
@@ -41,6 +44,12 @@ def parameter_setup():
         type=int,
         help="setting frequency (every n iteration) of saving images",
         default=50)
+
+    parser.add_argument(
+        "--score_freq",
+        type=int,
+        help="setting frequency (every n iteration) of generating scores",
+        default=10)
 
     parser.add_argument("--image_size",
                         type=int,
@@ -55,11 +64,12 @@ def parameter_setup():
                         help="setting number of epochs",
                         default=100)
 
-    parser.add_argument("--D_lr",
-                        type=float,
-                        help="Setting learning rate for discriminator",
-                        #default=0.0002)
-                        default=0.0006)
+    parser.add_argument(
+        "--D_lr",
+        type=float,
+        help="Setting learning rate for discriminator",
+        #default=0.0002)
+        default=0.0006)
 
     parser.add_argument("--D_update_rate",
                         type=int,
@@ -97,26 +107,28 @@ def parameter_setup():
                         default=torch.cuda.device_count())
 
     # EWC Parameters
-    parser.add_argument("--ewc_data_root",
-                        help="setting location for ewc evaluation data",
-                        #default="./data/AF_Mini")
-                        default="../../few_shot")
+    parser.add_argument(
+        "--ewc_data_root",
+        help="setting location for ewc evaluation data",
+        #default="./data/AF_Mini")
+        default="../../few_shot")
 
     parser.add_argument("--ewc_lambda",
                         type=float,
                         help="Setting ewc penalty lambda coefficient ",
                         default=10000)
     #GAN Hack parameters
-    parser.add_argument("--instance_noise_sigma",
-                        type=float,
-                        help="Setting instant noise std dev inital value (annealed to 0)",
-                        default=.1)
+    parser.add_argument(
+        "--instance_noise_sigma",
+        type=float,
+        help="Setting instant noise std dev inital value (annealed to 0)",
+        default=.1)
 
-    parser.add_argument("--label_smoothing_p",
-                        type=float,
-                        help="Setting one sided label smoothing probability of wrong label",
-                        default=.2)
-
+    parser.add_argument(
+        "--label_smoothing_p",
+        type=float,
+        help="Setting one sided label smoothing probability of wrong label",
+        default=.2)
 
     args = parser.parse_args()
     train_dict = dict()

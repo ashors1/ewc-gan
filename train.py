@@ -23,14 +23,17 @@ import time
 from datetime import datetime
 import argparse
 from parameter_setup import parameter_setup
-
-
+import lpips
+from torchvision.utils import save_image
+import subprocess
+import re
 # custom weights initialization called on netG and netD
 # Specified by DCGAN tutorial at https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 
 # Adds 2 GAN Hack methods for stabilizing training/handicapping the discriminator using
 # one-sided label smoothing and instance noise:
 # https://www.inference.vc/instance-noise-a-trick-for-stabilising-gan-training/
+
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -39,6 +42,41 @@ def weights_init(m):
     elif classname.find('BatchNorm') != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
+
+
+def get_fid_kid(og_dir, sample_dir):
+    og_dir = plib.Path.cwd() / plib.Path(og_dir)
+    for f_handle in og_dir.glob("*"):
+        if f_handle.is_dir():
+            f = f_handle
+    og_dir = f
+
+    run_str = f"fidelity --gpu 0 --isc --fid --kid --input1 {str(sample_dir)} --input2 {str(og_dir)} --kid-subset-size 100"
+    process = subprocess.run(run_str,
+                             check=True,
+                             stdout=subprocess.PIPE,
+                             universal_newlines=True)
+    output = process.stdout
+
+    try:
+        is_mean = float(
+            re.search('(?<=inception_score_mean:).*(?=\n)', output).group(0))
+        is_std = float(
+            re.search('(?<=inception_score_std:).*(?=\n)', output).group(0))
+        fid = float(
+            re.search('(?<=frechet_inception_distance:).*(?=\n)',
+                      output).group(0))
+        kid = float(
+            re.search('(?<=kernel_inception_distance_mean:).*(?=\n)',
+                      output).group(0))
+        kid_std = float(
+            re.search('(?<=kernel_inception_distance_std:).*(?=\n)',
+                      output).group(0))
+        result_list = [is_mean, is_std, fid, kid, kid_std]
+    except:
+        print(output)
+        result_list = []
+    return result_list
 
 
 def train(netG, netD, dataloader, train_dict, ewc_dict):
@@ -91,6 +129,9 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     final_img_dir = log_dir / "final_img"
     final_img_dir.mkdir(exist_ok=True)
 
+    work_dir = log_dir / "score_working_dir"
+    work_dir.mkdir(exist_ok=True)
+
     existing_log_files_versions = [
         int(f.name.replace(".log", "").replace("Run ", ""))
         for f in summary_dir.glob('*.log') if f.is_file()
@@ -131,6 +172,11 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
     # Create a fixed batch of latent vectors to track progress
     fixed_noise = torch.randn(64, nz, 1, 1, device=device)
+
+    # setup LPIPS loss function
+    loss_fn_alex = lpips.LPIPS(net='alex')
+    lpips_dict = dict()
+    fkid_dict = dict()
 
     ## training loop for fine-tuning is identical to pre-training training loop
     ## except we add the EWC penalty to the loss function
@@ -178,13 +224,18 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
                     #one-sided label smoothing
                     if train_dict['label_smoothing_p'] != 0:
-                        flip_idxs = torch.randperm(b_size)[:int(b_size*train_dict['label_smoothing_p'])]
+                        flip_idxs = torch.randperm(
+                            b_size)[:int(b_size *
+                                         train_dict['label_smoothing_p'])]
                         label[flip_idxs] = fake_label
 
                     # #instance noise
                     if train_dict['instance_noise_sigma'] != 0:
-                        sigma_anneal = (num_epochs - epoch)/num_epochs*train_dict['instance_noise_sigma']
-                        instance_noise = sigma_anneal *torch.randn(size = real_cpu.size())
+                        sigma_anneal = (
+                            num_epochs - epoch
+                        ) / num_epochs * train_dict['instance_noise_sigma']
+                        instance_noise = sigma_anneal * torch.randn(
+                            size=real_cpu.size()).to(device)
                     else:
                         instance_noise = 0
 
@@ -204,13 +255,16 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                     # Generate fake image batch with G
                     fake = netG(noise)
                     if train_dict['instance_noise_sigma'] != 0:
-                        sigma_anneal = (num_epochs - epoch)/num_epochs*train_dict['instance_noise_sigma']
-                        instance_noise = sigma_anneal *torch.randn(size = real_cpu.size())
+                        sigma_anneal = (
+                            num_epochs - epoch
+                        ) / num_epochs * train_dict['instance_noise_sigma']
+                        instance_noise = sigma_anneal * torch.randn(
+                            size=real_cpu.size()).to(device)
                     else:
                         instance_noise = 0
                     label.fill_(fake_label)
                     # Classify all fake batch with D
-                    output = netD(fake.detach()+instance_noise).view(-1)
+                    output = netD(fake.to(device) + instance_noise).view(-1)
                     # Calculate D's loss on the all-fake batch
                     ## commend in ewc penalty here too
                     errD_fake = criterion(
@@ -281,6 +335,62 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
                     plt.imshow(img_grid)
 
+                # score
+                if (iters % train_dict['score_freq'] == 0) and (iters != 0):
+
+                    sample_img_noise = torch.randn(100,
+                                                   nz,
+                                                   1,
+                                                   1,
+                                                   device=device)
+                    sample_img_output = netG(sample_img_noise).to('cpu')
+                    sample_img_list = torch.split(sample_img_output, 1, dim=0)
+                    comp_img_dataset = dset.ImageFolder(
+                        root=train_dict['data_root'],
+                        transform=transforms.Compose([
+                            transforms.Resize(train_dict['image_size']),
+                            transforms.CenterCrop(train_dict['image_size']),
+                            transforms.ToTensor(),
+                            transforms.Normalize((0.5, 0.5, 0.5),
+                                                 (0.5, 0.5, 0.5)),
+                        ]))
+                    # Create the dataloader
+                    comp_img_loader = torch.utils.data.DataLoader(
+                        comp_img_dataset,
+                        batch_size=dataset.__len__(),
+                        shuffle=False,
+                        num_workers=train_dict['workers'])
+                    comp_imgs = next(iter(comp_img_loader))[0].cpu()
+                    comp_img_list = torch.split(comp_imgs, 1, dim=0)
+
+                    #
+                    LPIPS_score_list = []
+                    for img1 in sample_img_list:
+                        for img2 in comp_img_list:
+                            LPIPS_score_list.append(
+                                loss_fn_alex(img1, img2).squeeze().item())
+
+                    avg = np.mean(LPIPS_score_list)
+                    stderr = np.std(np.array(LPIPS_score_list)) / np.sqrt(
+                        len(LPIPS_score_list))
+
+                    lpips_dict[iters] = (avg, stderr)
+
+                    # FID KID Calculation
+                    # erasing all files in the work folder
+
+                    for f in work_dir.glob('*'):
+                        if f.is_file():
+                            f.unlink()
+
+                    counter = 0
+                    for img in comp_img_list:
+                        save_image(img.squeeze(),
+                                   work_dir / f"Sample output {counter}.png")
+                        counter += 1
+                    fid_kid_result = get_fid_kid(train_dict['data_root'],
+                                                 work_dir)
+                    fkid_dict[iters] = fid_kid_result
 
                 iters += 1
 
@@ -300,6 +410,17 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
             f"Training Finished, total run time {round((start_time - time.time())/60)} minutes."
         )
 
+        # write LPIPS score
+        for k, v in lpips_dict.items():
+            f_handle.write(
+                f"\nAt iteration {k}, the average LPIPS score is {v[0]} and the standerr is {v[1]}"
+            )
+
+        for k, v in fkid_dict.items():
+            f_handle.write(
+                f"\nAt iteration {k}, the inception score, std, fid, kid, kid_std is {v}"
+            )
+
         for k, v in log_img_dict.items():
             plt.imshow(v)
             plt.savefig(k)
@@ -312,7 +433,9 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         plt.imshow(np.transpose(img_list[-1], (1, 2, 0)))
         plt.savefig(final_img_dir /
                     f"Run {current_version} Fixed Noise Output at Iter -1.png",
-                    bbox_inches='tight', transparent=True, pad_inches=.1)
+                    bbox_inches='tight',
+                    transparent=True,
+                    pad_inches=.1)
         #plt.show()
 
         # plot loss
