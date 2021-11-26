@@ -105,7 +105,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     # EWC Setup
     ## dataroot is path to celeba dataset
     ewc_data_root = ewc_dict['ewc_data_root']
-    #ewc = EWC(ewc_data_root, 128, netG, netD)
+    ewc = EWC(ewc_data_root, 128, netG, netD)
     print('done with initialization')
 
     lam = ewc_dict["ewc_lambda"]
@@ -296,8 +296,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 output = netD(fake).view(-1)
                 # Calculate G's loss based on this output and add EWC regularization term!
                 ## ewc penalty for generator
-                #ewc_penalty = ewc.penalty(netG)
-                ewc_penalty = 0
+                ewc_penalty = ewc.penalty(netG)
                 errG = criterion(output, label) + lam * ewc_penalty
 
                 # Calculate gradients for G
@@ -437,6 +436,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 f"\n#At iteration {k} the {','.join(metric_names)} is {v_all}"
             )
 
+        #write metrics to json with params
         metrics_dict = {k: v for k, v in train_dict.items() if k != 'device'}
         for m_i, m_list in enumerate (zip(*metrics_list)):
             metrics_dict[metric_names[m_i]] = m_list
@@ -444,7 +444,6 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         print(metrics_file_path)
         with open(metrics_file_path, 'w') as f:
             json.dump(metrics_dict, f, indent=4)
-
 
         for k, v in log_img_dict.items():
             plt.imshow(v)

@@ -116,7 +116,7 @@ def parameter_setup():
     parser.add_argument("--ewc_lambda",
                         type=float,
                         help="Setting ewc penalty lambda coefficient ",
-                        default=10000)
+                        default=600)
     #GAN Hack parameters
     parser.add_argument(
         "--instance_noise_sigma",
