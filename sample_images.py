@@ -79,4 +79,4 @@ if __name__ == '__main__':
 			(1, 2, 0))
 		plt.imshow(img_out)
 		plt.axis('off')
-		plt.savefig(f"{results_dir}/{opt.sample_grid_fname}", bbox_inches='tight', transparent=True, pad_inches=.1)
+		plt.savefig(f"{results_dir}/{opt.sample_grid_fname}", bbox_inches='tight', transparent=True, pad_inches=.1, dpi = 200)

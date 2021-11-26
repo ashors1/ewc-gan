@@ -27,6 +27,7 @@ import lpips
 from torchvision.utils import save_image
 import subprocess
 import re
+import json
 # custom weights initialization called on netG and netD
 # Specified by DCGAN tutorial at https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 
@@ -44,15 +45,17 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-def get_fid_kid(og_dir, sample_dir):
+def get_fid_kid(og_dir, sample_dir, ngpu):
     og_dir = plib.Path.cwd() / plib.Path(og_dir)
     for f_handle in og_dir.glob("*"):
         if f_handle.is_dir():
             f = f_handle
     og_dir = f
 
-    run_str = f"fidelity --gpu 0 --isc --fid --kid --input1 {str(sample_dir)} --input2 {str(og_dir)} --kid-subset-size 100"
-    process = subprocess.run(run_str,
+    run_str = f"fidelity{' --gpu 0' if ngpu > 0 else ''} --isc --fid --kid --input1 {str(sample_dir)} --input2 {str(og_dir)} --kid-subset-size 100"
+
+    run_arglist = run_str.split(" ")
+    process = subprocess.run(run_arglist,
                              check=True,
                              stdout=subprocess.PIPE,
                              universal_newlines=True)
@@ -102,7 +105,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     # EWC Setup
     ## dataroot is path to celeba dataset
     ewc_data_root = ewc_dict['ewc_data_root']
-    ewc = EWC(ewc_data_root, 128, netG, netD)
+    #ewc = EWC(ewc_data_root, 128, netG, netD)
     print('done with initialization')
 
     lam = ewc_dict["ewc_lambda"]
@@ -132,6 +135,9 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     work_dir = log_dir / "score_working_dir"
     work_dir.mkdir(exist_ok=True)
 
+    metrics_dir = log_dir / "metrics"
+    metrics_dir.mkdir(exist_ok=True)
+
     existing_log_files_versions = [
         int(f.name.replace(".log", "").replace("Run ", ""))
         for f in summary_dir.glob('*.log') if f.is_file()
@@ -143,6 +149,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         current_version = max(existing_log_files_versions) + 1
 
     log_file_path = summary_dir / f"Run {current_version}.log"
+    metrics_file_path = metrics_dir / f"Run {current_version}.json"
 
     ############################################
     ######   Loss Function and Optimizer
@@ -289,7 +296,8 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 output = netD(fake).view(-1)
                 # Calculate G's loss based on this output and add EWC regularization term!
                 ## ewc penalty for generator
-                ewc_penalty = ewc.penalty(netG)
+                #ewc_penalty = ewc.penalty(netG)
+                ewc_penalty = 0
                 errG = criterion(output, label) + lam * ewc_penalty
 
                 # Calculate gradients for G
@@ -336,7 +344,10 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                     plt.imshow(img_grid)
 
                 # score
-                if (iters % train_dict['score_freq'] == 0) and (iters != 0):
+                if train_dict['score_freq'] == 0:
+                    continue
+                elif ((train_dict['score_freq'] != -1) and (iters % train_dict['score_freq'] == 0) and (iters != 0)) or \
+                    ((train_dict['score_freq'] == -1) and (iters == num_epochs*len(dataloader) - 1)): #last iteration
 
                     sample_img_noise = torch.randn(100,
                                                    nz,
@@ -389,7 +400,8 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                                    work_dir / f"Sample output {counter}.png")
                         counter += 1
                     fid_kid_result = get_fid_kid(train_dict['data_root'],
-                                                 work_dir)
+                                                 work_dir,
+                                                 train_dict['ngpu'])
                     fkid_dict[iters] = fid_kid_result
 
                 iters += 1
@@ -411,15 +423,28 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         )
 
         # write LPIPS score
-        for k, v in lpips_dict.items():
+
+        # for k, v in lpips_dict.items():
+        #     f_handle.write(
+        #         f"\n#At iteration {k}, the average LPIPS score is {v[0]} and the standerr is {v[1]}"
+        #     )
+        metric_names = ["is", "is_std", "fid", "kid", "kid_std", "lpips", "lpips_std"]
+        metrics_list = []
+        for k, v in fkid_dict.items():
+            v_all = v + list(lpips_dict[k])
+            metrics_list.append(v_all)
             f_handle.write(
-                f"\nAt iteration {k}, the average LPIPS score is {v[0]} and the standerr is {v[1]}"
+                f"\n#At iteration {k} the {','.join(metric_names)} is {v_all}"
             )
 
-        for k, v in fkid_dict.items():
-            f_handle.write(
-                f"\nAt iteration {k}, the inception score, std, fid, kid, kid_std is {v}"
-            )
+        metrics_dict = {k: v for k, v in train_dict.items() if k != 'device'}
+        for m_i, m_list in enumerate (zip(*metrics_list)):
+            metrics_dict[metric_names[m_i]] = m_list
+
+        print(metrics_file_path)
+        with open(metrics_file_path, 'w') as f:
+            json.dump(metrics_dict, f, indent=4)
+
 
         for k, v in log_img_dict.items():
             plt.imshow(v)
@@ -453,6 +478,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 if __name__ == '__main__':
 
     train_dict, ewc_dict = parameter_setup()
+
     ############################################
     ###### Model Initialization
     ############################################

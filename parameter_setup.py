@@ -48,8 +48,8 @@ def parameter_setup():
     parser.add_argument(
         "--score_freq",
         type=int,
-        help="setting frequency (every n iteration) of generating scores",
-        default=10)
+        help="setting frequency (every n iteration) of generating scores (default -1 = last iteration only)",
+        default=-1)
 
     parser.add_argument("--image_size",
                         type=int,
