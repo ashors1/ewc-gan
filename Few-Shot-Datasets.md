@@ -14,7 +14,7 @@ Listed from farthest to closest domain distance:
 
 ##### [100-shot-panda](https://data-efficient-gans.mit.edu/datasets/)
 
- $d = 0.720260 \pm 0.002163$ 
+ $d = 0.720260 \pm 0.002163$
 
 ![test](results/panda_grid.jpg)
 
@@ -22,7 +22,7 @@ Listed from farthest to closest domain distance:
 
 ##### [100-shot-dog](https://data-efficient-gans.mit.edu/datasets/)
 
- $d = 0.693299 \pm 0.002752$ 
+ $d = 0.693299 \pm 0.002752$
 
 ![test](results/dog_grid.jpg)
 
@@ -30,7 +30,7 @@ Listed from farthest to closest domain distance:
 
 ##### [100-shot-cat](https://data-efficient-gans.mit.edu/datasets/)
 
- $d = 0.683711 \pm 0.002693$ 
+ $d = 0.683711 \pm 0.002693$
 
 ![test](results/cat_grid.jpg)
 
@@ -38,7 +38,7 @@ Listed from farthest to closest domain distance:
 
 ##### [100-shot-grumpy-cat](https://data-efficient-gans.mit.edu/datasets/)
 
- $d = 0.669543 \pm 0.002296$ 
+ $d = 0.669543 \pm 0.002296$
 
 ![test](results/grumpy_cat_grid.jpg)
 
@@ -46,33 +46,41 @@ Listed from farthest to closest domain distance:
 
 ##### CelebA_Bald (Subset of CelebA : 2.24%)
 
- $d = 0.64849 \pm 0.00308$ 
+ $d = 0.64849 \pm 0.00308$
 
 ![test](results/CelebA_Bald_grid.jpg)
 
 ##### CelebA_Eyeglasses (Subset of CelebA : 6.51%)
 
- $d = 0.64538 \pm 0.00347$ 
+ $d = 0.64538 \pm 0.00347$
 
 ![test](results/CelebA_Eyeglasses_grid.jpg)
 
 ##### CelebA_Mustache (Subset of CelebA : 4.15%)
 
- $d = 0.64148 \pm 0.00334$ 
+ $d = 0.64148 \pm 0.00334$
 
 ![test](results/CelebA_Mustache_grid.jpg)
 
 ##### [100-shot-obama](https://data-efficient-gans.mit.edu/datasets/)
 
- $d = 0.639513 \pm 0.002368$ 
+ $d = 0.639513 \pm 0.002368$
 
 ![test](results/obama_grid.jpg)
 
 
 
+##### CelebA_Bangs (Subset of CelebA : 15.16%)
+
+ $d = 0.63688 \pm 0.00344$
+
+![test](results/CelebA_Bangs_grid.jpg)
+
+
+
 ##### CelebA_Gray_Hair (Subset of CelebA : 4.19%)
 
- $d = 0.63210 \pm 0.00318$ 
+ $d = 0.63210 \pm 0.00318$
 
 ![test](results/CelebA_Gray_Hair_grid.jpg)
 
@@ -80,7 +88,7 @@ Listed from farthest to closest domain distance:
 
 ##### CelebA_Heavy_Makeup (Subset of CelebA : 38.69%)
 
- $d = 0.62494 \pm 0.00286$ 
+ $d = 0.62494 \pm 0.00286$
 
 ![test](results/CelebA_Heavy_Makeup_grid.jpg)
 
@@ -88,7 +96,7 @@ Listed from farthest to closest domain distance:
 
 ### Other Dataset Options
 
-[UTKFace](https://susanqq.github.io/UTKFace/): 20K face images with labels embedded in the file name (`[age]_[gender]_[race]_[date&time].jpg"), so we could potentially pull a subset of young or old. One problem is that the "in wild" are probably not going to work, but the cropped versions are cropped quite closely, which makes me hesitant to use it. 
+[UTKFace](https://susanqq.github.io/UTKFace/): 20K face images with labels embedded in the file name (`[age]_[gender]_[race]_[date&time].jpg"), so we could potentially pull a subset of young or old. One problem is that the "in wild" are probably not going to work, but the cropped versions are cropped quite closely, which makes me hesitant to use it.
 
 [Tufts Face Database](https://www.kaggle.com/kpvisionlab/tufts-face-database): Would probably use the "2D RGB Emotion" Dataset, and then subset to certain participants. Have to fill out google form, so haven't seen what the data looks like
 
@@ -140,4 +148,3 @@ Listed in order of proportion:
 | Attractive          |  0.512505 |
 | Young               |  0.773617 |
 | No_Beard            |   0.83494 |
-

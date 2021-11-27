@@ -11,7 +11,8 @@ df.replace({-1:0}, inplace=True)
 # print(d.set_index('index').sort_values(0).to_markdown())
 #
 
-for attribute in ['Eyeglasses','Mustache', 'Heavy_Makeup', 'Gray_Hair', 'Bald']:
+#['Eyeglasses','Mustache', 'Heavy_Makeup', 'Gray_Hair', 'Bald']
+for attribute in ['Eyeglasses','Mustache', 'Heavy_Makeup', 'Gray_Hair', 'Bald', 'Bushy_Eyebrows', 'Bangs']:
     print(attribute)
     attribute_flist = df.fname[df[attribute] == 1].to_list()
 
@@ -22,9 +23,9 @@ for attribute in ['Eyeglasses','Mustache', 'Heavy_Makeup', 'Gray_Hair', 'Bald']:
     for f in attribute_flist:
         shutil.copy(f'{celeb_a_fpath}/img_align_celeba/{f}', attribute_class_dir)
 
-    # resample_cmdline = f"python3 resize_training_subset.py -d_in {attribute_dir} -s 64 -d_out data/CelebA_{attribute}_size_64 --sample_grid_fname CelebA_{attribute}_grid.jpg -N 100"
-    #
-    # os.system(resample_cmdline)
-    #
-    # get_dd_cmdline = f'python lpips_2dir_allpairs.py -d0 data/CelebA_samples_size_64/ -d1 data/CelebA_{attribute}_size_64 -o distances/celebA_CelebA_{attribute}.txt -N 20'
-    # os.system(get_dd_cmdline)
+    resample_cmdline = f"python3 resize_training_subset.py -d_in {attribute_dir} -s 64 -d_out data/CelebA_{attribute}_size_64 --sample_grid_fname CelebA_{attribute}_grid.jpg -N 100"
+
+    os.system(resample_cmdline)
+
+    get_dd_cmdline = f'python lpips_2dir_allpairs.py -d0 data/CelebA_samples_size_64/ -d1 data/CelebA_{attribute}_size_64 -o distances/celebA_CelebA_{attribute}.txt -N 20'
+    os.system(get_dd_cmdline)
