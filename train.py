@@ -105,10 +105,11 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
     # EWC Setup
     ## dataroot is path to celeba dataset
     ewc_data_root = ewc_dict['ewc_data_root']
-    ewc = EWC(ewc_data_root, 128, netG, netD)
+    ewc = EWC(ewc_data_root, 32, netG, netD)
     print('done with initialization')
 
-    lam = ewc_dict["ewc_lambda"]
+    d_lam = ewc_dict["D_ewc_lambda"]
+    g_lam = ewc_dict["G_ewc_lambda"]
 
     # Set random seed for reproducibility
     manualSeed = 999
@@ -231,27 +232,24 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
                     #one-sided label smoothing
                     if train_dict['label_smoothing_p'] != 0:
-                        flip_idxs = torch.randperm(
-                            b_size)[:int(b_size *
-                                         train_dict['label_smoothing_p'])]
+                        flip_idxs = torch.randperm(b_size)[:int(b_size*train_dict['label_smoothing_p'])]
                         label[flip_idxs] = fake_label
 
                     # #instance noise
                     if train_dict['instance_noise_sigma'] != 0:
-                        sigma_anneal = (
-                            num_epochs - epoch
-                        ) / num_epochs * train_dict['instance_noise_sigma']
-                        instance_noise = sigma_anneal * torch.randn(
-                            size=real_cpu.size()).to(device)
+                        sigma_anneal = (num_epochs - epoch)/num_epochs*train_dict['instance_noise_sigma']
+                        instance_noise_real = sigma_anneal *torch.randn(size = real_cpu.size())
+                        instance_noise_fake = sigma_anneal *torch.randn(size = real_cpu.size())
                     else:
-                        instance_noise = 0
+                        instance_noise_real = 0
+                        instance_noise_fake = 0
 
                     # Forward pass real batch through D
-                    output = netD(real_cpu + instance_noise).view(-1)
+                    output = netD(real_cpu + instance_noise_real).view(-1)
                     # Calculate loss on all-real batch
                     ## comment in the ewc penalty line if you want to incorporate ewc
                     errD_real = criterion(
-                        output, label)  #+ ewc.penalty(netD, gen=False)
+                        output, label) + d_lam * ewc.penalty(netD, gen=False)
                     # Calculate gradients for D in backward pass
                     errD_real.backward()
                     D_x = output.mean().item()
@@ -261,26 +259,18 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                     noise = torch.randn(b_size, nz, 1, 1, device=device)
                     # Generate fake image batch with G
                     fake = netG(noise)
-                    if train_dict['instance_noise_sigma'] != 0:
-                        sigma_anneal = (
-                            num_epochs - epoch
-                        ) / num_epochs * train_dict['instance_noise_sigma']
-                        instance_noise = sigma_anneal * torch.randn(
-                            size=real_cpu.size()).to(device)
-                    else:
-                        instance_noise = 0
                     label.fill_(fake_label)
                     # Classify all fake batch with D
-                    output = netD(fake.to(device) + instance_noise).view(-1)
+                    output = netD(fake.detach() + instance_noise_fake).view(-1)
                     # Calculate D's loss on the all-fake batch
                     ## commend in ewc penalty here too
                     errD_fake = criterion(
-                        output, label)  #+ lam * ewc.penalty(netD, gen=False)
+                        output, label) + d_lam * ewc.penalty(netD, gen=False)
                     # Calculate the gradients for this batch, accumulated (summed) with previous gradients
                     errD_fake.backward()
                     D_G_z1 = output.mean().item()
                     # Compute error of D as sum over the fake and the real batches
-                    errD = errD_real + errD_fake
+                    errD = errD_real + errD_fake #+ 10*lam * ewc.penalty(netD, gen=False)
                     # Update D
                     optimizerD.step()
 
@@ -297,7 +287,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                 # Calculate G's loss based on this output and add EWC regularization term!
                 ## ewc penalty for generator
                 ewc_penalty = ewc.penalty(netG)
-                errG = criterion(output, label) + lam * ewc_penalty
+                errG = criterion(output, label) + g_lam * ewc_penalty
 
                 # Calculate gradients for G
                 errG.backward()
@@ -441,7 +431,6 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
         for m_i, m_list in enumerate (zip(*metrics_list)):
             metrics_dict[metric_names[m_i]] = m_list
 
-        print(metrics_file_path)
         with open(metrics_file_path, 'w') as f:
             json.dump(metrics_dict, f, indent=4)
 
@@ -520,6 +509,13 @@ if __name__ == '__main__':
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ]))
+
+    torch.manual_seed(999)
+    if train_dict['num_shots'] != -1:
+        subset = torch.torch.randperm(len(dataset))[:train_dict['num_shots']]
+        dataset = torch.utils.data.Subset(dataset, subset)
+
+
     # Create the dataloader
     dataloader = torch.utils.data.DataLoader(
         dataset,

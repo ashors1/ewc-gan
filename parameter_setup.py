@@ -22,22 +22,26 @@ def parameter_setup():
         "--pre_G",
         help="setting location for pre-trained Generator",
         #default="./netG_10_epoch_state_dict")
-        default='../../celeba_pretrained_generator')
+        default='./celeba_pretrained_generator')
     parser.add_argument(
         "--pre_D",
         help="setting location for pre-trained Discriminator",
         #default="./netD_10_epoch_state_dict")
-        default='../../celeba_pretrained_discriminator')
+        default='./celeba_pretrained_discriminator')
     parser.add_argument(
         "--data_root",
-        help="setting location for training data",
+        help="setting location for training data")
         #default="./data/AF_Mini")
-        default="../../few_shot")
 
     parser.add_argument("--batch_size",
                         type=int,
                         help="setting batch_size",
                         default=4)
+
+    parser.add_argument("--num_shots",
+                        type=int,
+                        help="number of fine-tuning examples",
+                        default=-1)
 
     parser.add_argument(
         "--img_freq",
@@ -109,26 +113,31 @@ def parameter_setup():
     # EWC Parameters
     parser.add_argument(
         "--ewc_data_root",
-        help="setting location for ewc evaluation data",
+        help="setting location for pre-trained data root",
         #default="./data/AF_Mini")
-        default="../../few_shot")
+        default="./data/CelebA/")
 
-    parser.add_argument("--ewc_lambda",
+    parser.add_argument("--G_ewc_lambda",
                         type=float,
                         help="Setting ewc penalty lambda coefficient ",
                         default=600)
+
+    parser.add_argument("--D_ewc_lambda",
+                        type=float,
+                        help="Setting ewc penalty lambda coefficient ",
+                        default=0)
     #GAN Hack parameters
     parser.add_argument(
         "--instance_noise_sigma",
         type=float,
         help="Setting instant noise std dev inital value (annealed to 0)",
-        default=.1)
+        default=0)
 
     parser.add_argument(
         "--label_smoothing_p",
         type=float,
         help="Setting one sided label smoothing probability of wrong label",
-        default=.2)
+        default=0)
 
     args = parser.parse_args()
     train_dict = dict()
@@ -141,7 +150,8 @@ def parameter_setup():
 
     # training setup for EWC
     ewc_dict = {
-        "ewc_lambda": train_dict['ewc_lambda'],
+        "G_ewc_lambda": train_dict['G_ewc_lambda'],
+        "D_ewc_lambda": train_dict['D_ewc_lambda'],
         "ewc_data_root": train_dict['ewc_data_root']
     }
 
