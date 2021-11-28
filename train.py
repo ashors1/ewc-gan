@@ -232,8 +232,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
                     #one-sided label smoothing
                     if train_dict['label_smoothing_p'] != 0:
-                        flip_idxs = torch.randperm(b_size)[:int(b_size*train_dict['label_smoothing_p'])]
-                        label[flip_idxs] = fake_label
+                        flip_idxs = torch.bernoulli((1-train_dict['label_smoothing_p'])*torch.ones(b_size))
 
                     # #instance noise
                     if train_dict['instance_noise_sigma'] != 0:
@@ -270,7 +269,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                     errD_fake.backward()
                     D_G_z1 = output.mean().item()
                     # Compute error of D as sum over the fake and the real batches
-                    errD = errD_real + errD_fake #+ 10*lam * ewc.penalty(netD, gen=False)
+                    errD = errD_real + errD_fake + d_lam * ewc.penalty(netD, gen=False)
                     # Update D
                     optimizerD.step()
 
@@ -334,6 +333,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
 
                 # score
                 if train_dict['score_freq'] == 0:
+                    iters += 1
                     continue
                 elif ((train_dict['score_freq'] != -1) and (iters % train_dict['score_freq'] == 0) and (iters != 0)) or \
                     ((train_dict['score_freq'] == -1) and (iters == num_epochs*len(dataloader) - 1)): #last iteration
@@ -392,9 +392,9 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                                                  work_dir,
                                                  train_dict['ngpu'])
                     fkid_dict[iters] = fid_kid_result
-
+               
                 iters += 1
-
+        
         ############################
         # Finish Logging
         ############################

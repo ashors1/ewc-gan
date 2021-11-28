@@ -149,10 +149,13 @@ class EWC(object):
             output = self.discriminator(dat).view(-1)
             # Calculate loss on all-real batch
             ## comment in the ewc penalty line if you want to incorporate ewc
-            errD_real = criterion(
-                output, label)
+            #errD_real = criterion(
+            #    output, label)
+            predictions_real = output[:self.b_size]
+            predictions_fake = 1-output[self.b_size:]
+            output = -torch.log(torch.cat((predictions_real, predictions_fake)))
 
-            disc_lls.append(errD_real)
+            disc_lls.append(output)
 
             if len(disc_lls) >= self.sample_size // self.b_size:
                 break
@@ -179,11 +182,10 @@ class EWC(object):
 
             # Since we just updated D, perform another forward pass of all-fake batch through D
             fake = self.generator(noise)
-            output = self.discriminator(fake).view(-1)
             # Calculate G's loss based on this output and add EWC regularization term!
-            ## ewc penalty for generator
-            errG = criterion(output, label)
-            gen_lls.append(errG)
+            ## get the log likelihoods directly
+            output = -torch.log(self.discriminator(fake)).view(-1)
+            gen_lls.append(output)
 
             if len(gen_lls) >= self.sample_size // self.b_size:
                 break
