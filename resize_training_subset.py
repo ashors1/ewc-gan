@@ -7,6 +7,7 @@ import torch
 import torchvision.utils as vutils
 import matplotlib.pyplot  as plt
 import numpy as np
+from torchvision.utils import save_image
 
 '''
 Sample N training images, resize, and write each image to file
@@ -45,13 +46,7 @@ if __name__ == '__main__':
 	data_0 = next(iter(dataloader))
 
 	for i, img in enumerate(tqdm(data_0[0], desc = f'Writing resized images to {opt.dir_output}')):
-
-		img_out = np.transpose(
-			vutils.make_grid(img, padding=2, normalize=True),
-			(1, 2, 0))
-		plt.imshow(img_out)
-		plt.axis('off')
-		plt.savefig(f"{opt.dir_output}/{i}.jpg", bbox_inches='tight', transparent=True, pad_inches=0)
+		save_image(img, f"{opt.dir_output}/{i}.jpg")
 
 
 	#write out a sample grid to the result folder for paper
