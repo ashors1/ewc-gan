@@ -17,6 +17,6 @@ python3 train.py --data_root ../../CelebA_Eyeglasses_size_64/ --batch_size 4 --s
 python3 train.py --data_root ../../CelebA_Eyeglasses_size_64/ --batch_size 4 --save --score_freq 0 --num_epochs 60 --G_lr 0.001 --num_shots 10 --G_ewc_lambda 2000
 python3 train.py --data_root ../../CelebA_Eyeglasses_size_64/ --batch_size 4 --save --score_freq 0 --num_epochs 60 --G_lr 0.001 --num_shots 10 --G_ewc_lambda 0
 
-python3 train.py --data_root ../../CelebA_Eyeglasses_size_64/ --batch_size 4 --save --score_freq 0 --num_epochs 200 --G_lr 0.001 --num_shots 3 --G_ewc_lambda 6000
+python3 train.py --data_root ../../CelebA_Eyeglasses_size_64/ --batch_size 4 --save --score_freq 0 --num_epochs 200 --G_lr 0.001 --num_shots 3 --G_ewc_lambda 3000
 python3 train.py --data_root ../../CelebA_Eyeglasses_size_64/ --batch_size 4 --save --score_freq 0 --num_epochs 200 --G_lr 0.001 --num_shots 3 --G_ewc_lambda 0
 
