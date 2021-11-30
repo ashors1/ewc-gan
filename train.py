@@ -511,9 +511,35 @@ if __name__ == '__main__':
         ]))
 
     torch.manual_seed(999)
-    if train_dict['num_shots'] != -1:
-        subset = torch.torch.randperm(len(dataset))[:train_dict['num_shots']]
+    n_shots = train_dict['num_shots'] 
+    if n_shots != -1:
+        subset = torch.torch.randperm(len(dataset))[:n_shots]
         dataset = torch.utils.data.Subset(dataset, subset)
+
+
+        log_dir = plib.Path.cwd() / "log"
+        log_dir.mkdir(exist_ok=True)
+ 
+        summary_dir = log_dir / "training_summary"
+        summary_dir.mkdir(exist_ok=True)
+        existing_log_files_versions = [
+           int(f.name.replace(".log", "").replace("Run ", ""))
+           for f in summary_dir.glob('*.log') if f.is_file()
+        ]
+
+        if len(existing_log_files_versions) == 0:
+            current_version = 0
+        else:
+            current_version = max(existing_log_files_versions) + 1
+
+        few_shot_dir = log_dir / "few_shot_datasets"
+        few_shot_dir.mkdir(exist_ok=True)
+        subset_dir = few_shot_dir / f"run_{current_version}_{n_shots}_shots" 
+        subset_dir.mkdir(exist_ok=True)
+
+        for idx, data in enumerate(dataset):
+            data = data[0]
+            vutils.save_image(data, subset_dir / 'img_{}.png'.format(idx), normalize=True)
 
 
     # Create the dataloader
