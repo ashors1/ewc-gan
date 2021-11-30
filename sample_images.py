@@ -10,6 +10,7 @@ import torchvision.utils as vutils
 import matplotlib.pyplot  as plt
 from dcgan import Generator, Discriminator
 from tqdm import  tqdm
+from torchvision.utils import save_image
 
 
 '''
@@ -60,12 +61,8 @@ if __name__ == '__main__':
 
 	if opt.out_dirname != '':
 		for i in tqdm(range(opt.N), desc = f'Writing Generated Images to {outpath}'):
-			img_grid = np.transpose(
-				vutils.make_grid(fake[i], padding=0, normalize=True),
-				(1, 2, 0))
-			plt.imshow(img_grid)
-			plt.axis('off')
-			plt.savefig(f"{outpath}/{i}.jpg", bbox_inches='tight', transparent=True, pad_inches=0)
+	        save_image(fake[i],
+	                   f"{outpath}/{i}.jpg")
 
 	#write out a sample grid to the result folder for paper
 	if opt.sample_grid_fname != '':
