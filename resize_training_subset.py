@@ -46,7 +46,7 @@ if __name__ == '__main__':
 	data_0 = next(iter(dataloader))
 
 	for i, img in enumerate(tqdm(data_0[0], desc = f'Writing resized images to {opt.dir_output}')):
-		save_image(img, f"{opt.dir_output}/{i}.jpg")
+		save_image(img, f"{opt.dir_output}/{i}.jpg", normalize = True)
 
 
 	#write out a sample grid to the result folder for paper
