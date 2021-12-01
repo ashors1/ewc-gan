@@ -61,8 +61,8 @@ if __name__ == '__main__':
 
 	if opt.out_dirname != '':
 		for i in tqdm(range(opt.N), desc = f'Writing Generated Images to {outpath}'):
-	        save_image(fake[i],
-	                   f"{outpath}/{i}.jpg")
+			save_image(fake[i],
+					   f"{outpath}/{i}.jpg", normalize = True)
 
 	#write out a sample grid to the result folder for paper
 	if opt.sample_grid_fname != '':
