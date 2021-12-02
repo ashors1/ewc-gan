@@ -384,7 +384,7 @@ def train(netG, netD, dataloader, train_dict, ewc_dict):
                             f.unlink()
 
                     counter = 0
-                    for img in comp_img_list:
+                    for img in sample_img_list:
                         save_image(img.squeeze(),
                                    work_dir / f"Sample output {counter}.png")
                         counter += 1
