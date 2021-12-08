@@ -145,8 +145,6 @@ if __name__ == '__main__':
 	torch.manual_seed(manualSeed)
 
 	sample_img_noise = torch.randn(N_SAMPLES,N_SAMPLES,1,1,device=device)
-	grid_fixed_noise_idxs = [2, 61, 21]
-
 	pretrained_g = 'celeba_pretrained_generator'
 
 	#### dataset experiment ###
@@ -169,8 +167,13 @@ if __name__ == '__main__':
 			save_image_grid(sample_img_noise,
 				generator_fpath,
 				title = f'dataset_{dataset_name}_{reg}.jpg',
-				idxs = grid_fixed_noise_idxs)
+				idxs = [2, 61, 21])
 			i+=1
+
+	save_image_grid(sample_img_noise,
+		pretrained_g,
+		title = f'dataset_pretrained.jpg',
+		idxs = [2, 61, 21])
 
 	outpath = f'results/{experiment_name}_experiment_results.json'
 	with open(outpath, 'w') as f:
@@ -216,32 +219,40 @@ if __name__ == '__main__':
 	#### Discriminator Handicap Experiment ###
 	experiment_name = 'method_compare'
 	print(experiment_name)
-	experiment_saved_model_dir = f'saved_model/{experiment_name}_saved_models'
-	generator_fpaths = sorted(glob.glob(f"{experiment_saved_model_dir}/*netG.pt"))
-
-	dataset_name = 'CelebA_Bald'
 	method_runs = ['LS', 'IN', 'LS+IN', 'D_EWC']
-	i = 0
-	result_dict = defaultdict(dict)
-	for m in method_runs:
-		for reg in ['EWC', 'No EWC']:
-			print(m, reg)
-			generator_fpath = generator_fpaths[i]
-			data_fpath = f'data/{dataset_name}_size_64'
+	datasets = ['Bald','Eyeglasses','Bangs']
+	for dataset_name in datasets:
+		print(dataset_name)
+		experiment_saved_model_dir = f'saved_model/{experiment_name}_{dataset_name}_saved_models'
+		generator_fpaths = sorted(glob.glob(f"{experiment_saved_model_dir}/*netG.pt"))
+		print(experiment_saved_model_dir)
+		reg_list = ['EWC']
+		if dataset_name == 'Bald':
+			 reg_list+= ['No EWC']
+		i = 0
+		result_dict = defaultdict(dict)
+		for m in method_runs:
+			for reg in reg_list:
+				print(m, reg)
+				generator_fpath = generator_fpaths[i]
+				data_fpath = f'data/CelebA_{dataset_name}_size_64'
 
-			result_dict[m][reg] = get_metrics_for_run(sample_img_noise,
-				generator_fpath, data_fpath, work_dir)
-			save_image_grid(sample_img_noise,
-				generator_fpath,
-				title = f'method_{m}_{reg}.jpg',
-				idxs = [59])
-			i+=1
+				result_dict[m][reg] = get_metrics_for_run(sample_img_noise,
+					generator_fpath, data_fpath, work_dir)
+				save_image_grid(sample_img_noise,
+					generator_fpath,
+					title = f'method_{dataset_name}_{m}_{reg}.jpg',
+					idxs = [59, 13, 28])
+				i+=1
+		outpath = f'results/{experiment_name}_{dataset_name}_experiment_results.json'
+		with open(outpath, 'w') as f:
+			json.dump(result_dict, f, indent=4)
 
 	save_image_grid(sample_img_noise,
 		pretrained_g,
 		title = f'method_pretrained.jpg',
-		idxs = [59])
-
-	outpath = f'results/{experiment_name}_experiment_results.json'
-	with open(outpath, 'w') as f:
-		json.dump(result_dict, f, indent=4)
+		idxs = [59, 13, 28])
+	save_image_grid(sample_img_noise,
+		'saved_model/dataset_saved_models/Run_0_netG.pt',
+		title = f'method_none_EWC.jpg',
+		idxs = [59, 13, 28])
